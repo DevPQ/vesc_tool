@@ -52,6 +52,8 @@ PageLisp::PageLisp(QWidget *parent) :
     ui->eraseButton->setIcon(Utility::getIcon("icons/Delete-96.png"));
     ui->replHelpButton->setIcon(Utility::getIcon("icons/Help-96.png"));
     ui->streamButton->setIcon(Utility::getIcon("icons/Download-96.png"));
+    ui->recentFilterClearButton->setIcon(Utility::getIcon("icons/Cancel-96.png"));
+    ui->exampleFilterClearButton->setIcon(Utility::getIcon("icons/Cancel-96.png"));
 
     QIcon mycon = Utility::getIcon( "icons/expand_off.png");
     mycon.addPixmap(Utility::getIcon("icons/expand_on.png"), QIcon::Normal, QIcon::On);
@@ -146,7 +148,7 @@ PageLisp::PageLisp(QWidget *parent) :
         removeEditor(mainEditor);
     });
 
-    ui->splitter->setSizes(QList<int>({1000, 600}));
+    ui->splitter->setSizes(QList<int>({1000, 100}));
     ui->splitter_2->setSizes(QList<int>({1000, 600}));
 
     mPollTimer.start(1000 / ui->pollRateBox->value());
@@ -228,6 +230,26 @@ void PageLisp::setVesc(VescInterface *vesc)
         ui->debugEdit->moveCursor(QTextCursor::End);
         ui->debugEdit->insertPlainText(str + "\n");
         ui->debugEdit->moveCursor(QTextCursor::End);
+
+        int maxLines = 5000;
+        int removeLines = 1000;
+
+        if (ui->debugEdit->document()->lineCount() > maxLines) {
+            QString txt = ui->debugEdit->toPlainText();
+            auto lines = txt.split("\n");
+            if (lines.length() >= removeLines) {
+                QString shorter;
+                for (int i = removeLines;i < lines.length();i++) {
+                    shorter.append(lines.at(i));
+
+                    if (i != (lines.length() - 1)) {
+                        shorter.append("\n");
+                    }
+                }
+                ui->debugEdit->setText(shorter);
+                ui->debugEdit->moveCursor(QTextCursor::End);
+            }
+        }
     });
 
     connect(mVesc->commands(), &Commands::lispRunningResRx, [this](bool ok) {
@@ -314,12 +336,26 @@ void PageLisp::reloadParams()
 
 }
 
+bool PageLisp::hasUnsavedTabs()
+{
+    for (int i = 0; i < ui->fileTabs->count(); i++) {
+        auto e = qobject_cast<ScriptEditor*>(ui->fileTabs->widget(i));
+        if (e->hasUnsavedContent()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void PageLisp::updateRecentList()
 {
     ui->recentList->clear();
     for (auto f: mRecentFiles) {
         ui->recentList->addItem(f);
     }
+
+    on_recentFilterEdit_textChanged(ui->recentFilterEdit->text());
 }
 
 void PageLisp::makeEditorConnections(ScriptEditor *editor)
@@ -331,20 +367,18 @@ void PageLisp::makeEditorConnections(ScriptEditor *editor)
         ui->debugEdit->clear();
     });
     connect(editor, &ScriptEditor::fileOpened, [this](QString fileName) {
-        if (!mRecentFiles.contains(fileName)) {
-            mRecentFiles.append(fileName);
-            updateRecentList();
-        }
+        mRecentFiles.removeAll(fileName);
+        mRecentFiles.append(fileName);
+        updateRecentList();
     });
     connect(editor, &ScriptEditor::fileSaved, [editor, this](QString fileName) {
         if (mVesc) {
             mVesc->emitStatusMessage("Saved " + fileName, true);
         }
 
-        if (!mRecentFiles.contains(fileName)) {
-            mRecentFiles.append(fileName);
-            updateRecentList();
-        }
+        mRecentFiles.removeAll(fileName);
+        mRecentFiles.append(fileName);
+        updateRecentList();
 
         setEditorClean(editor);
     });
@@ -356,6 +390,15 @@ void PageLisp::makeEditorConnections(ScriptEditor *editor)
     });
     connect(editor->codeEditor(), &QCodeEditor::stopTriggered, [this]() {
         on_stopButton_clicked();
+    });
+    connect(editor->codeEditor(), &QCodeEditor::runBlockTriggered, [this](QString text) {
+        if (text.length() > 400) {
+            mVesc->emitMessageDialog("Run Block",
+                                     "Too much code selected, please select a smaller block.",
+                                     false, false);
+        } else {
+            mVesc->commands()->lispSendReplCmd(text);
+        }
     });
 }
 
@@ -402,7 +445,7 @@ void PageLisp::removeEditor(ScriptEditor *editor)
     bool shouldCloseTab = false;
 
     // Check if tab is dirty
-    if (editor->isDirty == true) {
+    if (editor->hasUnsavedContent()) {
         // Ask user for confirmation
         QMessageBox::StandardButton answer = QMessageBox::question(
              this,
@@ -524,6 +567,11 @@ void PageLisp::openRecentList()
             createEditorTab(fileName, file.readAll());
         }
 
+        mRecentFiles.removeAll(fileName);
+        mRecentFiles.append(fileName);
+        updateRecentList();
+        ui->recentList->setCurrentRow(ui->recentList->count() - 1);
+
         file.close();
     } else {
         QMessageBox::critical(this, "Open Recent",
@@ -636,14 +684,19 @@ void PageLisp::on_uploadButton_clicked()
 
 void PageLisp::on_readExistingButton_clicked()
 {
-    auto code = mLoader.lispRead(this);
+    QProgressDialog dialog(tr("Reading Code..."), QString(), 0, 0, this);
+    dialog.setWindowModality(Qt::WindowModal);
+    dialog.show();
+
+    QString lispPath = "From VESC";
+    auto code = mLoader.lispRead(this, lispPath);
 
     if (!code.isEmpty()) {
         if (ui->mainEdit->codeEditor()->toPlainText().isEmpty()) {
             ui->mainEdit->codeEditor()->setPlainText(code);
             ui->fileTabs->setTabText(ui->fileTabs->indexOf(ui->mainEdit), "From VESC");
         } else {
-            createEditorTab("From VESC", code);
+            createEditorTab(lispPath, code);
         }
     }
 }
@@ -680,7 +733,8 @@ void PageLisp::on_helpButton_clicked()
                    "Ctrl + 'w'   : Stream application<br>"
                    "Ctrl + 'q'   : Stop application<br>"
                    "Ctrl + 'd'   : Clear console<br>"
-                   "Ctrl + 's'   : Save file<br>";
+                   "Ctrl + 's'   : Save file<br>"
+                   "Ctrl + 'r'   : Run selected block in REPL<br>";
 
     HelpDialog::showHelpMonospace(this, "VESC Tool Script Editor", html);
 }
@@ -713,4 +767,28 @@ void PageLisp::on_streamButton_clicked()
     }
 
     mLoader.lispStream(codeStr.toLocal8Bit(), ui->streamModeBox->currentIndex());
+}
+
+void PageLisp::on_recentFilterEdit_textChanged(const QString &filter)
+{
+    for (int row = 0; row < ui->recentList->count(); ++row) {
+        if (filter.isEmpty()) {
+            ui->recentList->item(row)->setHidden(false);
+        } else {
+            ui->recentList->item(row)->setHidden(!ui->recentList->item(row)->text().
+                                                 contains(filter, Qt::CaseInsensitive));
+        }
+    }
+}
+
+void PageLisp::on_exampleFilterEdit_textChanged(const QString &filter)
+{
+    for (int row = 0; row < ui->exampleList->count(); ++row) {
+        if (filter.isEmpty()) {
+            ui->exampleList->item(row)->setHidden(false);
+        } else {
+            ui->exampleList->item(row)->setHidden(!ui->exampleList->item(row)->text().
+                                                 contains(filter, Qt::CaseInsensitive));
+        }
+    }
 }

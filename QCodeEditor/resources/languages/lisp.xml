@@ -23,6 +23,7 @@
 <name>loopwhile</name>
 <name>looprange</name>
 <name>loopforeach</name>
+<name>loopwhile-thd</name>
 <name>break</name>
 <name>return</name>
 <name>import</name>
@@ -33,8 +34,11 @@
 <name>var</name>
 <name>setq</name>
 <name>move-to-flash</name>
+<name>unflatten</name>
+<name>flatten</name>
 <name>@const-start</name>
 <name>@const-end</name>
+<name>@const-symbol-strings</name>
 </section>
 
 <section name="Label">
@@ -119,11 +123,15 @@
 <name>self</name>
 <name>exit-ok</name>
 <name>exit-error</name>
+<name>timeout</name>
 <name>recv</name>
+<name>recv-to</name>
 <name>send</name>
 <name>set-mailbox-size</name>
 <name>yield</name>
 <name>ix</name>
+<name>take</name>
+<name>drop</name>
 <name>list</name>
 <name>append</name>
 <name>mod</name>
@@ -167,6 +175,14 @@
 <name>get-encoder</name>
 <name>set-encoder</name>
 <name>get-encoder-error-rate</name>
+<name>pos-pid-now</name>
+<name>pos-pid-set</name>
+<name>pos-pid-error</name>
+<name>phase-motor</name>
+<name>phase-encoder</name>
+<name>phase-hall</name>
+<name>phase-observer</name>
+<name>observer-error</name>
 <name>set-servo</name>
 <name>get-vin</name>
 <name>select-motor</name>
@@ -189,6 +205,7 @@
 <name>get-imu-acc-derot</name>
 <name>get-imu-gyro-derot</name>
 <name>send-data</name>
+<name>recv-data</name>
 <name>get-remote-state</name>
 <name>eeprom-store-f</name>
 <name>eeprom-read-f</name>
@@ -202,6 +219,7 @@
 <name>icu-period</name>
 <name>app-adc-detach</name>
 <name>app-adc-override</name>
+<name>app-adc-range-ok</name>
 <name>app-ppm-detach</name>
 <name>app-ppm-override</name>
 <name>set-remote-state</name>
@@ -224,6 +242,8 @@
 <name>get-current-in</name>
 <name>get-id</name>
 <name>get-iq</name>
+<name>get-id-set</name>
+<name>get-iq-set</name>
 <name>get-vd</name>
 <name>get-vq</name>
 <name>get-est-lambda</name>
@@ -270,8 +290,11 @@
 <name>canget-vin</name>
 <name>can-list-devs</name>
 <name>can-scan</name>
+<name>can-local-id</name>
 <name>can-send-sid</name>
 <name>can-send-eid</name>
+<name>can-recv-sid</name>
+<name>can-recv-eid</name>
 <name>can-cmd</name>
 <name>sin</name>
 <name>cos</name>
@@ -324,6 +347,10 @@
 <name>conf-detect-foc</name>
 <name>conf-set-pid-offset</name>
 <name>conf-measure-res</name>
+<name>conf-restore-mc</name>
+<name>conf-restore-app</name>
+<name>conf-dc-cal</name>
+<name>conf-get-limits</name>
 <name>free</name>
 <name>bufcreate</name>
 <name>array-create</name>
@@ -348,11 +375,13 @@
 <name>bufclear</name>
 <name>bufcpy</name>
 <name>bufset-bit</name>
+<name>buf-find</name>
 <name>load-native-lib</name>
 <name>unload-native-lib</name>
 <name>uavcan-last-rawcmd</name>
 <name>uavcan-last-rpmcmd</name>
 <name>lbm-set-quota</name>
+<name>lbm-set-gc-stack-size</name>
 <name>plot-init</name>
 <name>plot-add-graph</name>
 <name>plot-set-graph</name>
@@ -396,6 +425,7 @@
 <name>esp-now-start</name>
 <name>esp-now-add-peer</name>
 <name>esp-now-send</name>
+<name>esp-now-recv</name>
 <name>get-mac-addr</name>
 <name>wifi-get-chan</name>
 <name>wifi-set-chan</name>
@@ -406,5 +436,22 @@
 <name>rgbled-color</name>
 <name>sleep-deep</name>
 <name>sleep-config-wakeup-pin</name>
+<name>canmsg-send</name>
+<name>canmsg-recv</name>
+<name>f-open</name>
+<name>f-close</name>
+<name>f-read</name>
+<name>f-readline</name>
+<name>f-write</name>
+<name>f-tell</name>
+<name>f-seek</name>
+<name>f-mkdir</name>
+<name>f-rm</name>
+<name>f-ls</name>
+<name>f-size</name>
+<name>f-fatinfo</name>
+<name>fw-erase</name>
+<name>fw-write</name>
+<name>fw-reboot</name>
 </section>
 </root>

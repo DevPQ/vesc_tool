@@ -49,7 +49,6 @@ Commands::Commands(QObject *parent) : QObject(parent)
     mTimeoutDecPpm = 0;
     mTimeoutDecAdc = 0;
     mTimeoutDecChuk = 0;
-    mTimeoutDecBalance = 0;
     mTimeoutPingCan = 0;
     mTimeoutCustomConf = 0;
     mTimeoutBmsVal = 0;
@@ -399,25 +398,6 @@ void Commands::processPacket(QByteArray data)
         emit decodedChukReceived(vb.vbPopFrontDouble32(1000000.0));
         break;
 
-    case COMM_GET_DECODED_BALANCE: {
-        mTimeoutDecBalance = 0;
-
-        BALANCE_VALUES values;
-
-        values.pid_output = vb.vbPopFrontDouble32(1e6);
-        values.pitch_angle = vb.vbPopFrontDouble32(1e6);
-        values.roll_angle = vb.vbPopFrontDouble32(1e6);
-        values.diff_time = vb.vbPopFrontUint32();
-        values.motor_current = vb.vbPopFrontDouble32(1e6);
-        values.debug1 = vb.vbPopFrontDouble32(1e6);
-        values.state = vb.vbPopFrontUint16();
-        values.switch_value = vb.vbPopFrontUint16();
-        values.adc1 = vb.vbPopFrontDouble32(1e6);
-        values.adc2 = vb.vbPopFrontDouble32(1e6);
-        values.debug2 = vb.vbPopFrontDouble32(1e6);
-        emit decodedBalanceReceived(values);
-    } break;
-
     case COMM_SET_MCCONF:
         emit ackReceived("MCCONF Write OK");
         break;
@@ -616,9 +596,7 @@ void Commands::processPacket(QByteArray data)
             values.q3 = vb.vbPopFrontDouble32Auto();
         }
         if (vb.size() >= 1) {
-            if (mask & (uint32_t(1) << 16)) {
-                values.vesc_id = vb.vbPopFrontUint8();
-            }
+            values.vesc_id = vb.vbPopFrontUint8();
         }
 
         emit valuesImuReceived(values, mask);
@@ -1496,19 +1474,6 @@ void Commands::getDecodedChuk()
     emitData(vb);
 }
 
-void Commands::getDecodedBalance()
-{
-    if (mTimeoutDecBalance > 0) {
-        return;
-    }
-
-    mTimeoutDecBalance = mTimeoutCount;
-
-    VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_DECODED_BALANCE);
-    emitData(vb);
-}
-
 void Commands::setServoPos(double pos)
 {
     VByteArray vb;
@@ -2281,7 +2246,6 @@ void Commands::timerSlot()
     if (mTimeoutDecPpm > 0) mTimeoutDecPpm--;
     if (mTimeoutDecAdc > 0) mTimeoutDecAdc--;
     if (mTimeoutDecChuk > 0) mTimeoutDecChuk--;
-    if (mTimeoutDecBalance > 0) mTimeoutDecBalance--;
     if (mTimeoutPingCan > 0) {
         mTimeoutPingCan--;
         if (mTimeoutPingCan == 0) {

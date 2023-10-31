@@ -54,7 +54,6 @@
 #include "pages/pageappuart.h"
 #include "pages/pageappnunchuk.h"
 #include "pages/pageappnrf.h"
-#include "pages/pageappbalance.h"
 #include "pages/pageapppas.h"
 #include "pages/pagegpd.h"
 #include "pages/pageexperiments.h"
@@ -84,6 +83,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     bool eventFilter(QObject *object, QEvent *e);
+    void closeEvent(QCloseEvent *event);
 
 private slots:
     void timerSlotDebugMsg();
@@ -210,7 +210,6 @@ private:
     PageAppUart *mPageAppUart;
     PageAppNunchuk *mPageAppNunchuk;
     PageAppNrf *mPageAppNrf;
-    PageAppBalance *mPageAppBalance;
     PageCanAnalyzer *mPageCanAnalyzer;
     PageTerminal *mPageTerminal;
     PageAppPas *mPageAppPas;
@@ -224,7 +223,6 @@ private:
     PageScripting *mPageScripting;
     PageLisp *mPageLisp;
     PageEspProg *mPageEspProg;
-    QTabWidget *mPageVESCDev;
     PageDisplayTool *mPageDisplayTool;
     Preferences *mPreferences;
 

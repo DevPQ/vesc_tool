@@ -274,7 +274,7 @@ void PageFirmware::updateFwList()
             QFileInfo fi(it.next());
             if (ui->showNonDefaultBox->isChecked() ||
                     fi.fileName().toLower() == "vesc_default.bin" ||
-                    fi.fileName().toLower() == "app.bin") {
+                    fi.fileName().toLower() == "vesc_express.bin") {
                 QListWidgetItem *item = new QListWidgetItem;
                 item->setText(fi.fileName());
                 item->setData(Qt::UserRole, fi.absoluteFilePath());
@@ -353,7 +353,11 @@ void PageFirmware::updateBlList(FW_RX_PARAMS params)
         endEsp.append('\0');
 
         if (!params.uuid.endsWith(endEsp)) {
-            blDir = "://res/bootloaders_custom_module";
+            if (params.hw == "hm1") {
+                blDir = "://res/bootloaders_bms";
+            } else {
+                blDir = "://res/bootloaders_custom_module";
+            }
         }
         break;
     }

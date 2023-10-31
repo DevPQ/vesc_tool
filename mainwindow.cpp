@@ -321,15 +321,13 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->pageList->item(mPageNameIdList.value("app_ppm"))->setHidden
                     (!(type == 1 || type == 4 || type == 8));
             ui->pageList->item(mPageNameIdList.value("app_adc"))->setHidden
-                    (!(type == 2 || type == 5 || type == 8 || type == 11));
+                    (!(type == 2 || type == 5 || type == 8 || type == 10));
             ui->pageList->item(mPageNameIdList.value("app_uart"))->setHidden
                     (!(type == 3 || type == 4 || type == 5 || type == 8));
             ui->pageList->item(mPageNameIdList.value("app_vescremote"))->setHidden
                     (!(type == 0 || type == 3 || type == 6 || type == 7 || type == 8));
-            ui->pageList->item(mPageNameIdList.value("app_balance"))->setHidden
-                    (!(type == 8 || type == 9));
             ui->pageList->item(mPageNameIdList.value("app_pas"))->setHidden
-                    (!(type == 10 || type == 11));
+                    (!(type == 9 || type == 10));
         }
     };
 
@@ -361,7 +359,6 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->pageList->item(mPageNameIdList.value("app_uart"))->setHidden(false);
             ui->pageList->item(mPageNameIdList.value("app_vescremote"))->setHidden(false);
             ui->pageList->item(mPageNameIdList.value("app_nrf"))->setHidden(false);
-            ui->pageList->item(mPageNameIdList.value("app_balance"))->setHidden(false);
             ui->pageList->item(mPageNameIdList.value("app_pas"))->setHidden(false);
             ui->pageList->item(mPageNameIdList.value("app_imu"))->setHidden(false);
             ui->pageList->item(mPageNameIdList.value("data_rt"))->setHidden(false);
@@ -389,10 +386,8 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->pageList->item(mPageNameIdList.value("app_uart"))->setHidden(true);
             ui->pageList->item(mPageNameIdList.value("app_vescremote"))->setHidden(true);
             ui->pageList->item(mPageNameIdList.value("app_nrf"))->setHidden(true);
-            ui->pageList->item(mPageNameIdList.value("app_balance"))->setHidden(true);
             ui->pageList->item(mPageNameIdList.value("app_pas"))->setHidden(true);
             ui->pageList->item(mPageNameIdList.value("app_imu"))->setHidden(true);
-            //            ui->pageList->item(mPageNameIdList.value("data_rt"))->setHidden(true);
             ui->pageList->item(mPageNameIdList.value("data_sampled"))->setHidden(true);
         }
     });
@@ -418,7 +413,6 @@ MainWindow::MainWindow(QWidget *parent) :
         mPageAppUart->reloadParams();
         mPageAppNunchuk->reloadParams();
         mPageAppNrf->reloadParams();
-        mPageAppBalance->reloadParams();
         mPageAppPas->reloadParams();
         mPageAppImu->reloadParams();
         mPageFirmware->reloadParams();
@@ -498,7 +492,6 @@ MainWindow::MainWindow(QWidget *parent) :
             mVesc->commands()->getDecodedAdc();
             mVesc->commands()->getDecodedChuk();
             mVesc->commands()->getDecodedPpm();
-            mVesc->commands()->getDecodedBalance();
             mPollAppTimer.setInterval(int(1000.0 / mSettings.value("poll_rate_app_data", 50).toDouble()));
         }
     });
@@ -677,6 +670,41 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e)
     return false;
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (mPageLisp->hasUnsavedTabs()) {
+        QMessageBox::StandardButton answer = QMessageBox::question(
+                    this,
+                    tr("Unsaved Lisp-Tabs"),
+                    tr("There are unsaved Lisp-tabs open. Do you want to close "
+                       "VESC Tool without saving them?"),
+                    QMessageBox::Yes | QMessageBox::Cancel
+                    );
+
+        if (answer == QMessageBox::Yes) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
+    } else if (mPageScripting->hasUnsavedTabs()) {
+        QMessageBox::StandardButton answer = QMessageBox::question(
+                    this,
+                    tr("Unsaved Qml-Tabs"),
+                    tr("There are unsaved Qml-tabs open. Do you want to close "
+                       "VESC Tool without saving them?"),
+                    QMessageBox::Yes | QMessageBox::Cancel
+                    );
+
+        if (answer == QMessageBox::Yes) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
+    } else {
+        event->accept();
+    }
+}
+
 void MainWindow::timerSlotDebugMsg()
 {
     QMutexLocker locker(&myDebugMsgMutex);
@@ -726,6 +754,12 @@ void MainWindow::timerSlot()
     if (mVesc->isPortConnected() && ui->canList->count() == 0 &&
             ui->scanCanButton->isEnabled() && mVesc->fwRx() && mVesc->customConfigRxDone()) {
         on_scanCanButton_clicked();
+    }
+
+    if (ui->scanCanButton->isEnabled()) {
+        ui->canList->setEnabled(mVesc->fwRx() && mVesc->customConfigRxDone());
+    } else {
+        ui->canList->setEnabled(false);
     }
 
     // If disconnected for a short time clear the can list so it scans on reconnect.
@@ -1468,13 +1502,6 @@ void MainWindow::reloadPages()
                 theme + "icons/appconf.png", false, true);
     mPageNameIdList.insert("app_nrf", ui->pageList->count() - 1);
 
-    mPageAppBalance = new PageAppBalance(this);
-    mPageAppBalance->setVesc(mVesc);
-    ui->pageWidget->addWidget(mPageAppBalance);
-    addPageItem(tr("Balance"),  theme + "icons/EUC-96.png",
-                theme + "icons/appconf.png", false, true);
-    mPageNameIdList.insert("app_balance", ui->pageList->count() - 1);
-
     mPageAppPas = new PageAppPas(this);
     mPageAppPas->setVesc(mVesc);
     ui->pageWidget->addWidget(mPageAppPas);
@@ -1547,39 +1574,41 @@ void MainWindow::reloadPages()
     ui->pageWidget->addWidget(mPageLogAnalysis);
     addPageItem(tr("Log Analysis"),  theme + "icons/Waypoint Map-96.png", "", false, true);
 
-    mPageVESCDev = new QTabWidget(this);
-    mPageVESCDev->setTabShape(QTabWidget::Triangular);
+    VTextBrowser *vt = new VTextBrowser(this);
+    ConfigParam *p = mVesc->infoConfig()->getParam("dev_tools_description");
+    if (p) {
+        vt->setText(p->description);
+    }
+    ui->pageWidget->addWidget(vt);
+    addPageItem(tr("VESC Dev Tools"),  theme + "icons/v_icon-96.png", "", true);
 
     mPageTerminal = new PageTerminal(this);
     mPageTerminal->setVesc(mVesc);
     ui->pageWidget->addWidget(mPageTerminal);
-    mPageVESCDev->addTab(mPageTerminal, Utility::getIcon("icons/Console-96.png"), tr("VESC Terminal"));
+    addPageItem(tr("Terminal"),  theme + "icons/Console-96.png", "", false, true);
 
     mPageScripting = new PageScripting(this);
     mPageScripting->setVesc(mVesc);
     ui->pageWidget->addWidget(mPageScripting);
-    mPageVESCDev->addTab(mPageScripting, Utility::getIcon("icons_textedit/Outdent-96.png"), tr("QML"));
+    addPageItem(tr("QML Scripting"),  theme + "icons_textedit/Outdent-96.png", "", false, true);
 
     mPageLisp = new PageLisp(this);
     mPageLisp->setVesc(mVesc);
     ui->pageWidget->addWidget(mPageLisp);
-    mPageVESCDev->addTab(mPageLisp, Utility::getIcon("icons_textedit/Outdent-96.png"), tr("Lisp"));
+    addPageItem(tr("LispBM Scripting"),  theme + "icons_textedit/Outdent-96.png", "", false, true);
 
     mPageCanAnalyzer = new PageCanAnalyzer(this);
     mPageCanAnalyzer->setVesc(mVesc);
     ui->pageWidget->addWidget(mPageCanAnalyzer);
-    mPageVESCDev->addTab(mPageCanAnalyzer, Utility::getIcon("icons/can_off.png"), tr("CAN Analyzer"));
+    addPageItem(tr("CAN Analyzer"),  theme + "icons/can_off.png", "", false, true);
 
     mPageDisplayTool = new PageDisplayTool(this);
     ui->pageWidget->addWidget(mPageDisplayTool);
-    mPageVESCDev->addTab(mPageDisplayTool, Utility::getIcon("icons/Calculator-96.png"), tr("Display Tool"));
+    addPageItem(tr("Display Tool"),  theme + "icons/Calculator-96.png", "", false, true);
 
     mPageDebugPrint = new PageDebugPrint(this);
     ui->pageWidget->addWidget(mPageDebugPrint);
-    mPageVESCDev->addTab(mPageDebugPrint, Utility::getIcon("icons/Bug-96.png"), tr("Debug Console"));
-
-    ui->pageWidget->addWidget(mPageVESCDev);
-    addPageItem(tr("VESC Dev Tools"),  theme + "icons/Console-96.png", "", true);
+    addPageItem(tr("Debug Console"),  theme + "icons/Bug-96.png", "", false, true);
 
     mPageSwdProg = new PageSwdProg(this);
     mPageSwdProg->setVesc(mVesc);
@@ -1611,7 +1640,6 @@ void MainWindow::reloadPages()
      * app_uart
      * app_vescremote
      * app_nrf
-     * app_balance
      * app_imu
      * app_custom_config_0
      * app_custom_config_1
@@ -1857,29 +1885,25 @@ void MainWindow::on_actionSaveAppConfigurationHeaderWrap_triggered()
 void MainWindow::on_actionTerminalPrintFaults_triggered()
 {
     mVesc->commands()->sendTerminalCmd("faults");
-    showPage("VESC Dev Tools");
-    mPageVESCDev->setCurrentIndex(0);
+    showPage("Terminal");
 }
 
 void MainWindow::on_actionTerminalShowHelp_triggered()
 {
     mVesc->commands()->sendTerminalCmd("help");
-    showPage("VESC Dev Tools");
-    mPageVESCDev->setCurrentIndex(0);
+    showPage("Terminal");
 }
 
 void MainWindow::on_actionTerminalClear_triggered()
 {
     mPageTerminal->clearTerminal();
-    showPage("VESC Dev Tools");
-    mPageVESCDev->setCurrentIndex(0);
+    showPage("Terminal");
 }
 
 void MainWindow::on_actionTerminalPrintThreads_triggered()
 {
     mVesc->commands()->sendTerminalCmd("threads");
-    showPage("VESC Dev Tools");
-    mPageVESCDev->setCurrentIndex(0);
+    showPage("Terminal");
 }
 
 void MainWindow::on_actionTerminalDRVResetLatchedFaults_triggered()
@@ -2063,6 +2087,8 @@ void MainWindow::pingCanRx(QVector<int> devs, bool isTimeout)
 
 void MainWindow::on_canList_currentRowChanged(int currentRow)
 {
+    ui->canList->setEnabled(false);
+
     if (currentRow >= 0) {
         if (currentRow == 0) {
             if (mVesc->commands()->getSendCan()) {

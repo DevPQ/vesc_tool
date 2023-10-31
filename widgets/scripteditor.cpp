@@ -55,6 +55,7 @@ ScriptEditor::ScriptEditor(QWidget *parent) :
         }
         ui->codeEdit->searchForString(ui->searchEdit->text());
         ui->searchEdit->setFocus();
+        ui->searchEdit->selectAll();
     });
 }
 
@@ -83,6 +84,7 @@ void ScriptEditor::setModeQml()
 {
     ui->codeEdit->setHighlighter(new QmlHighlighter);
     ui->codeEdit->setCompleter(new QVescCompleter);
+    ui->codeEdit->setHighlightBlocks(false);
     mIsModeLisp = false;
 }
 
@@ -94,6 +96,7 @@ void ScriptEditor::setModeLisp()
     ui->codeEdit->setIndentStrs("{(", "})");
     ui->codeEdit->setAutoParentheses(true);
     ui->codeEdit->setSeparateMinus(false);
+    ui->codeEdit->setHighlightBlocks(true);
     mIsModeLisp = true;
 }
 
@@ -117,6 +120,30 @@ QString ScriptEditor::contentAsText()
         res = file.readAll();
 
         file.close();
+    }
+
+    return res;
+}
+
+bool ScriptEditor::hasUnsavedContent()
+{
+    bool res = false;
+
+    QString fileName = ui->fileNowLabel->text();
+    QFileInfo fi(fileName);
+    if (!fi.exists()) {
+        // Use a threshold of 5 characters
+        if (ui->codeEdit->toPlainText().size() > 5) {
+            res = true;
+        }
+    } else {
+        QFile file(fileName);
+        if (file.open(QIODevice::ReadOnly)) {
+            if (QString::fromUtf8(file.readAll()) !=
+                    ui->codeEdit->toPlainText().toUtf8()) {
+                res = true;
+            }
+        }
     }
 
     return res;
@@ -271,9 +298,18 @@ void ScriptEditor::on_refreshButton_clicked()
         return;
     }
 
-    ui->codeEdit->setPlainText(file.readAll());
+    ui->codeEdit->setPlainText(QString::fromUtf8(file.readAll()));
     ui->fileNowLabel->setText(fileName);
     emit fileOpened(fileName);
 
     file.close();
+}
+
+void ScriptEditor::on_searchEdit_returnPressed()
+{
+    if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
+        ui->codeEdit->searchPreviousResult();
+    } else {
+        ui->codeEdit->searchNextResult();
+    }
 }

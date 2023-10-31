@@ -1266,7 +1266,7 @@ bool VescInterface::fwEraseNewApp(bool fwdCan, quint32 fwSize)
     };
 
     mCommands->eraseNewApp(fwdCan, fwSize, mLastFwParams.hwType, mLastFwParams.hw);
-    emit fwUploadStatus("Erasing buffer...", 0.0, true);
+    emit fwUploadStatus("Erasing buffer", 0.0, true);
     int erRes = waitEraseRes();
     if (erRes != 1) {
         QString msg = QString("Unknown failure: %1").arg(erRes);
@@ -1471,9 +1471,13 @@ bool VescInterface::fwUpload(QByteArray &newFirmware, bool isBootloader, bool fw
             addr += 0x0803E000 - 0x08020000;
             break;
 
-        case HW_TYPE_CUSTOM_MODULE:
-            addr += 0x0801E000 - 0x08010000;
-            break;
+        case HW_TYPE_CUSTOM_MODULE: {
+            if (mLastFwParams.hw == "hm1") {
+                addr += 0x0803E000 - 0x08020000;
+            } else {
+                addr += 0x0801E000 - 0x08010000;
+            }
+        } break;
         }
     }
 
@@ -1541,7 +1545,7 @@ bool VescInterface::fwUpload(QByteArray &newFirmware, bool isBootloader, bool fw
         QByteArray in = newFirmware.mid(0, sz);
 
         bool hasData = false;
-        for (auto b: in) {
+        foreach (auto b, in) {
             if (b != (char)0xff) {
                 hasData = true;
                 break;
@@ -3177,7 +3181,10 @@ void VescInterface::timerSlot()
                         emit statusMessage(tr("No firmware read response"), false);
                         emit messageDialog(tr("Read Firmware Version"),
                                            tr("Could not read firmware version. Make sure that "
-                                              "the selected port really belongs to the VESC. "),
+                                              "the selected port really belongs to the VESC. If "
+                                              "you are using UART, make sure that the port is enabled, "
+                                              "connected correctly (rx to tx and tx to rx) and uses "
+                                              "the correct baudrate"),
                                            false, false);
                         disconnectPort();
                     }
@@ -3690,10 +3697,12 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
                                            false, false);
                     }
                 } else {
-                    emit messageDialog(tr("Warning"), tr("The connected VESC has too old firmware. Since the"
-                                                         " connected VESC has firmware with bootloader support, it can be"
-                                                         " updated from the Firmware page."
-                                                         " Until then, limited communication mode will be used."), false, false);
+                    if (params.hwType == HW_TYPE_VESC) {
+                        emit messageDialog(tr("Warning"), tr("The connected VESC has too old firmware. Since the"
+                                                             " connected VESC has firmware with bootloader support, it can be"
+                                                             " updated from the Firmware page."
+                                                             " Until then, limited communication mode will be used."), false, false);
+                    }
                 }
             }
         } else {
