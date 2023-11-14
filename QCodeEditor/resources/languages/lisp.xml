@@ -328,6 +328,8 @@
 <name>i2c-start</name>
 <name>i2c-tx-rx</name>
 <name>i2c-restore</name>
+<name>imu-start-lsm6</name>
+<name>imu-stop</name>
 <name>gpio-configure</name>
 <name>gpio-write</name>
 <name>gpio-read</name>
@@ -347,6 +349,7 @@
 <name>conf-detect-foc</name>
 <name>conf-set-pid-offset</name>
 <name>conf-measure-res</name>
+<name>conf-measure-ind</name>
 <name>conf-restore-mc</name>
 <name>conf-restore-app</name>
 <name>conf-dc-cal</name>
@@ -421,6 +424,7 @@
 <name>gnss-date-time</name>
 <name>gnss-age</name>
 <name>crc16</name>
+<name>crc32</name>
 <name>main-init-done</name>
 <name>esp-now-start</name>
 <name>esp-now-add-peer</name>
@@ -434,6 +438,9 @@
 <name>rgbled-init</name>
 <name>rgbled-deinit</name>
 <name>rgbled-color</name>
+<name>as504x-init</name>
+<name>as504x-deinit</name>
+<name>as504x-angle</name>
 <name>sleep-deep</name>
 <name>sleep-config-wakeup-pin</name>
 <name>canmsg-send</name>
@@ -459,5 +466,6 @@
 <name>qml-erase</name>
 <name>qml-write</name>
 <name>shutdown-hold</name>
+<name>reboot</name>
 </section>
 </root>
